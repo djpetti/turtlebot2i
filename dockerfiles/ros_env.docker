@@ -1,0 +1,28 @@
+# This Dockerfile is meant to replicate the environment on the robot, and is used for building the robot code.
+# As such, it is optimized for cache efficiency but not size.
+
+FROM ubuntu:16.04
+
+# Add a turtlebot user.
+RUN useradd -m turtlebot
+
+# Clone the realsense library.
+RUN apt-get update && apt-get install -y git
+RUN git clone https://github.com/IntelRealSense/librealsense.git \
+    -b v2.40.0 /tmp/librealsense
+
+# Set up the ROS environment.
+ADD roles/turtlebot/files/setup_ros_env.sh .
+RUN ./setup_ros_env.sh && rm setup_ros_env.sh
+
+USER turtlebot
+WORKDIR /home/turtlebot
+
+# Download turtlebot code.
+ADD build/download_turtlebot_source.sh .
+RUN ./download_turtlebot_source.sh
+
+# Build the code.
+WORKDIR /home/turtlebot/turtlebot2i
+RUN ["/bin/bash", "-c", \
+     "source /opt/ros/kinetic/setup.bash && catkin_make -j $(nproc)"]

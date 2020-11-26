@@ -1,0 +1,8 @@
+# Ansible playbook for provisioning a turtlebot. It assumes that the
+# turtlebot has a fresh installation of Ubuntu 16.04, and that SSH is enabled.
+
+---
+- name: Provision the turtlebots.
+  hosts: turtlebots
+  roles:
+    - turtlebot

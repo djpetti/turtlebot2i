@@ -1,0 +1,16 @@
+- name: Edit the bashrc file for ros.
+  blockinfile:
+    path: /home/turtlebot/.bashrc
+    block: |
+      source /opt/ros/kinetic/setup.bash
+      alias goros='source devel/setup.sh'
+      export ROS_HOSTNAME=turtlebot
+      export TURTLEBOT_3D_SENSOR=astra
+      export TURTLEBOT_3D_SENSOR2=sr300
+      export TURTLEBOT_BATTERY=None
+      export TURTLEBOT_STACKS=interbotix
+      export TURTLEBOT_ARM=pincher
+      source /opt/ros/kinetic/setup.bash
+
+      # Make tmux work.
+      export TERM=xterm

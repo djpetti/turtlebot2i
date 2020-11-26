@@ -1,0 +1,8 @@
+- name: Setup the ROS environment.
+  import_tasks: common_env_setup.yml
+- name: (Partially) build the turtlebot code.
+  import_tasks: build_turtlebot_code.yml
+- name: Set up udev rules.
+  import_tasks: udev_rules.yml
+- name: Edit .bashrc file.
+  import_tasks: bashrc_setup.yml

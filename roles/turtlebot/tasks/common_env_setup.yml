@@ -1,0 +1,28 @@
+# Sets up the common ROS environment.
+- name: Update all existing packages.
+  apt:
+    update_cache: yes
+    upgrade: dist
+    autoremove: yes
+  become: yes
+
+- name: Install git.
+  apt:
+    name: git
+  become: yes
+- name: Clone realsense library.
+  git:
+    repo: https://github.com/IntelRealSense/librealsense.git
+    dest: /tmp/librealsense
+    version: v2.40.0
+
+- name: Run the ROS environment setup script.
+  script: setup_ros_env.sh
+  become: yes
+
+- name: Add turtlebot to the dialout group.
+  user:
+    name: turtlebot
+    groups: dialout
+    append: yes
+  become: yes

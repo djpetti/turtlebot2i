@@ -1,0 +1,7 @@
+version: "3.8"
+services:
+  builder:
+    # Docker container for building the code.
+    build:
+      context: .
+      dockerfile: dockerfiles/ros_env.docker

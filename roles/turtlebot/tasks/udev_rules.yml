@@ -1,0 +1,65 @@
+# Sets up udev rules.
+
+- name: Set up Kobuki udev rules.
+  shell:
+    cmd: >
+      source devel/setup.sh \
+      && rosrun kobuki_ftdi create_udev_rules
+    chdir: "{{ turtlebot_code_dir }}"
+    executable: /bin/bash
+  become: yes
+- name: Set up Astra udev rules.
+  shell:
+    cmd: >
+      source devel/setup.sh \
+      && rosrun astra_camera create_udev_rules
+    chdir: "{{ turtlebot_code_dir }}"
+    executable: /bin/bash
+  become: yes
+
+# Set up udev rules for serial devices.
+- name: Determine device connected to first serial port.
+  shell:
+    cmd: udevadm info -a -n /dev/ttyUSB0 | grep '{serial}' | head -n1
+    executable: /bin/bash
+  register: tty0_device
+- name: Determine device connected to second serial port.
+  shell:
+    cmd: udevadm info -a -n /dev/ttyUSB1 | grep '{serial}' | head -n1
+    executable: /bin/bash
+  register: tty1_device
+- name: tty0 is Kobuki.
+  set_fact:
+    kobuki_device: "{{ tty0_device.stdout }}"
+    arbotix_device: "{{ tty1_device.stdout }}"
+  when: tty0_device.stdout.find('kobuki') != -1
+- name: tty1 is Kobuki.
+  set_fact:
+    kobuki_device: "{{ tty1_device.stdout }}"
+    arbotix_device: "{{ tty0_device.stdout }}"
+  when: tty1_device.stdout.find('kobuki') != -1
+- name: Make sure that udev rule file exists.
+  file:
+    path: /etc/udev/rules.d/99-turtlebot2i.rules
+    state: touch
+  become: yes
+- name: Edit the udev rules for the serial devices.
+  blockinfile:
+    path: /etc/udev/rules.d/99-turtlebot2i.rules
+    block: |
+      SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", {{ kobuki_device }}, SYMLINK+="kobuki"
+      SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", {{ arbotix_device }}, SYMLINK+="arbotix"
+  become: yes
+
+- name: Copy the realsense udev rules.
+  copy:
+    src: /tmp/librealsense/config/99-realsense-libusb.rules
+    dest: /etc/udev/rules.d/
+    remote_src: yes
+  become: yes
+- name: Reload udev rules.
+  command: udevadm control --reload-rules
+  become: yes
+- name: Trigger udev rules.
+  command: udevadm trigger
+  become: yes

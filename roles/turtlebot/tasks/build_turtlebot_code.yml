@@ -1,0 +1,42 @@
+# Performs a (partial) build of the turtlebot code.
+
+- name: Create the source code directory.
+  file:
+    path: "{{ turtlebot_code_dir }}"
+    state: directory
+    mode: 0755
+
+- name: Clone the turtlebot2i repo.
+  git:
+    repo: https://github.com/Interbotix/turtlebot2i.git
+    dest: "{{ turtlebot_code_dir }}/src"
+    version: turtlebot2i_old
+- name: Clone the arbotix_ros repo.
+  git:
+    repo: https://github.com/Interbotix/arbotix_ros.git
+    dest: "{{ turtlebot_code_dir }}/src/arbotix_ros"
+    version: turtlebot2i
+- name: Clone the phantomx_pincher_arm repo.
+  git:
+    repo: https://github.com/Interbotix/phantomx_pincher_arm.git
+    dest: "{{ turtlebot_code_dir }}/src/phantomx_pincher_arm"
+    version: turtlebot2i_old
+- name: Clone the ros_astra_camera repo.
+  git:
+    repo: https://github.com/Interbotix/ros_astra_camera
+    dest: "{{ turtlebot_code_dir }}/src/ros_astra_camera"
+    version: filterlibrary
+- name: Clone the ros_astra_launch repo.
+  git:
+    repo: https://github.com/Interbotix/ros_astra_launch
+    dest: "{{ turtlebot_code_dir }}/src/ros_astra_launch"
+
+- name: Build turtlebot code.
+  shell:
+    # We only build the packages we need to continue.
+    cmd: >
+      source /opt/ros/kinetic/setup.bash \
+       && catkin_make -j $(nproc) \
+       -DCATKIN_WHITELIST_PACKAGES="kobuki_ftdi;astra_camera"
+    chdir: "{{ turtlebot_code_dir }}"
+    executable: /bin/bash
