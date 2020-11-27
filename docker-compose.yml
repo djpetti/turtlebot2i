@@ -5,3 +5,7 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/ros_env.docker
+    ports:
+      - "1824:22"
+    volumes:
+      - .:/home/turtlebot/turtlebot2i

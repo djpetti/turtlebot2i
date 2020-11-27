@@ -7,7 +7,7 @@ FROM ubuntu:16.04
 RUN useradd -m turtlebot
 
 # Clone the realsense library.
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/IntelRealSense/librealsense.git \
     -b v2.40.0 /tmp/librealsense
 
@@ -15,14 +15,19 @@ RUN git clone https://github.com/IntelRealSense/librealsense.git \
 ADD roles/turtlebot/files/setup_ros_env.sh .
 RUN ./setup_ros_env.sh && rm setup_ros_env.sh
 
-USER turtlebot
-WORKDIR /home/turtlebot
+# Set up SSH for CLion.
+RUN apt-get update && apt-get install -y ssh && rm -rf /var/lib/apt/lists/*
+RUN ( \
+    echo 'LogLevel DEBUG2'; \
+    echo 'PermitRootLogin yes'; \
+    echo 'PasswordAuthentication yes'; \
+    echo 'Subsystem sftp /usr/lib/openssh/sftp-server'; \
+  ) > /etc/ssh/sshd_config_test_clion \
+  && mkdir /run/sshd
 
-# Download turtlebot code.
-ADD build/download_turtlebot_source.sh .
-RUN ./download_turtlebot_source.sh
+RUN yes password | passwd turtlebot
 
-# Build the code.
-WORKDIR /home/turtlebot/turtlebot2i
-RUN ["/bin/bash", "-c", \
-     "source /opt/ros/kinetic/setup.bash && catkin_make -j $(nproc)"]
+# Copy the wrapper script for cmake.
+ADD scripts/catkin_cmake.sh /usr/bin/catkin_cmake
+
+CMD ["/usr/sbin/sshd", "-D", "-e", "-f", "/etc/ssh/sshd_config_test_clion"]
