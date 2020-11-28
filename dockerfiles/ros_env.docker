@@ -1,7 +1,8 @@
 # This Dockerfile is meant to replicate the environment on the robot, and is used for building the robot code.
 # As such, it is optimized for cache efficiency but not size.
 
-FROM ubuntu:16.04
+# Common dependency container.
+FROM ubuntu:16.04 AS common
 
 # Add a turtlebot user.
 RUN useradd -m turtlebot
@@ -14,6 +15,15 @@ RUN git clone https://github.com/IntelRealSense/librealsense.git \
 # Set up the ROS environment.
 ADD roles/turtlebot/files/setup_ros_env.sh .
 RUN ./setup_ros_env.sh && rm setup_ros_env.sh
+
+# Container for running rviz.
+FROM common as rviz
+
+# Add the rviz script.
+ADD scripts/rviz.sh rviz.sh
+
+# Container for building the code.
+FROM common as builder
 
 # Set up SSH for CLion.
 RUN apt-get update && apt-get install -y ssh && rm -rf /var/lib/apt/lists/*

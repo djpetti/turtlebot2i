@@ -5,7 +5,27 @@ services:
     build:
       context: .
       dockerfile: dockerfiles/ros_env.docker
+      target: builder
     ports:
       - "1824:22"
     volumes:
       - .:/home/turtlebot/turtlebot2i
+
+  rviz:
+    # Docker container for running rviz.
+    build:
+      context: .
+      dockerfile: dockerfiles/ros_env.docker
+      target: rviz
+    volumes:
+      - .:/home/turtlebot/turtlebot2i
+      # Share the host's X server.
+      - ~/.Xauthority:/root/.Xauthority
+    environment:
+      # Share the display.
+      DISPLAY: ${DISPLAY}
+      # Set these to your robot IP address so Rviz can connect to it.
+      ROS_MASTER_URI: "http://172.20.69.13:11311"
+      ROS_IP: "172.20.69.13"
+    network_mode: host
+    command: /rviz.sh
