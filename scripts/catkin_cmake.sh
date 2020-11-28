@@ -8,4 +8,4 @@ set -e
 # Load ROS environment.
 source /opt/ros/kinetic/setup.bash
 
-cmake -DCMAKE_INSTALL_PREFIX=../install -DCATKIN_DEVEL_PREFIX=../devel "$@"
+cmake "$@"
