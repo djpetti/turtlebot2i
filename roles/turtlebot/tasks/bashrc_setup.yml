@@ -4,13 +4,17 @@
     block: |
       source /opt/ros/kinetic/setup.bash
       alias goros='source devel/setup.sh'
+      source /opt/ros/kinetic/setup.bash
       export ROS_HOSTNAME=turtlebot
       export TURTLEBOT_3D_SENSOR=astra
       export TURTLEBOT_3D_SENSOR2=sr300
       export TURTLEBOT_BATTERY=None
       export TURTLEBOT_STACKS=interbotix
       export TURTLEBOT_ARM=pincher
-      source /opt/ros/kinetic/setup.bash
+
+      # Set the ROS hostname and IP.
+      export ROS_MASTER_URI=http://{{ ansible_default_ipv4.address }}:11311
+      export ROS_IP={{ ansible_default_ipv4.address }}
 
       # Make tmux work.
       export TERM=xterm
