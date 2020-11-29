@@ -8,6 +8,9 @@
   <node pkg="nodelet" type="nodelet" name="mobile_base" args="load kobuki_node/KobukiNodelet mobile_base_nodelet_manager">
     <rosparam file="$(find kobuki_node)/param/base.yaml" command="load"/>
     <param name="device_port" value="$(arg serialport)" />
+    <param name="recovery_behaviors" value="[{name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery},
+     {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
+     {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}]" />
 
     <remap from="mobile_base/odom" to="odom"/>
     <!-- Don't do this - force applications to use a velocity mux for redirection  

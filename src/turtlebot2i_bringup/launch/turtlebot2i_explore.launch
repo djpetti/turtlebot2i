@@ -6,6 +6,8 @@
   <arg name="rviz" default="false"/>
   <arg name="rtabmapviz" default="false"/>
 
+   <env name="ROSCONSOLE_CONFIG_FILE" value="$(find exploration)/config/rosconsole.conf"/>
+
   <include file="$(find turtlebot2i_bringup)/launch/minimal.launch"/>
 
   <include file="$(find turtlebot2i_bringup)/launch/arms/phantomx_pincher_arm.launch"/>
@@ -23,4 +25,6 @@
   <include file="$(find kobuki_auto_docking)/launch/standalone.launch" />
 
   <include if="$(arg rviz)" file="$(find turtlebot2i_bringup)/launch/rviz.launch"/>
+
+  <node pkg="exploration" type="exploration_node" name="exploration" />
 </launch>
