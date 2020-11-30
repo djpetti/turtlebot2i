@@ -2,15 +2,17 @@
 #define TURTLEBOT_MAP_MANAGER_H
 
 #include <cstdint>
+#include <unordered_set>
+#include <utility>
 #include <vector>
 
-#include "nav_msgs/OccupancyGrid.h"
 #include "geometry_msgs/Point.h"
+#include "nav_msgs/OccupancyGrid.h"
 
 namespace exploration {
 
-using nav_msgs::OccupancyGridConstPtr;
 using geometry_msgs::Point;
+using nav_msgs::OccupancyGridConstPtr;
 
 /**
  * @brief Manages raw occupancy grid data.
@@ -27,6 +29,8 @@ public:
     OCCUPIED,
     /// We do not know the state of this cell.
     UNKNOWN,
+    /// We were unable to plan a path to here.
+    UNREACHABLE,
   };
 
   /**
@@ -35,6 +39,15 @@ public:
   struct CellLocation {
     uint32_t x, y;
   };
+
+  /// Defines a hash for CellLocation.
+  struct CellLocationHash {
+    size_t operator()(const CellLocation &cell) const {
+      return std::hash<uint32_t>{}(cell.x) ^ std::hash<uint32_t>{}(cell.y);
+    }
+  };
+
+  using CellSet = std::unordered_set<CellLocation, CellLocationHash>;
 
   /**
    * @brief Updates the current stored map.
@@ -66,12 +79,29 @@ public:
   std::vector<CellLocation> FindAllWithState(CellState state) const;
 
   /**
+   * @brief Gets the locations of all cells in the map that are at most once
+   * cell away from this one. (Includes diagonal cells as well.)
+   * @param x The x-coordinate of the center cell.
+   * @param y The y-coordinate of the center cell.
+   * @return A set of all relevant cell locations.
+   */
+  std::vector<CellLocation> GetAdjacent(uint32_t x, uint32_t y) const;
+
+  /**
+   * @brief Finds all contiguous nodes that have a particular state.
+   * @param state The state that the nodes should have.
+   * @return A vector of sets. Each set contains the locations of the cells in
+   *    one contiguous blob.
+   */
+  std::vector<CellSet> FindConnectedWithState(CellState state) const;
+
+  /**
    * @brief Gets the cell that corresponds to a particular location in
    *    map-space.
    * @param point The point in map-space.
    * @return The corresponding cell coordinates.
    */
-  CellLocation GetCellAtPoint(const Point& point) const;
+  CellLocation GetCellAtPoint(const Point &point) const;
 
   /**
    * @brief Gets the center point of a cell in map-space.
@@ -81,10 +111,42 @@ public:
    */
   Point GetCellCenter(uint32_t x, uint32_t y) const;
 
+  /**
+   * @brief Marks a particular cell as unreachable. This designation will
+   * persist across map updates.
+   * @param x The x-coordinate of the cell.
+   * @param y The y-coordinate of the cell.
+   */
+  void MarkCellUnreachable(uint32_t x, uint32_t y);
+
 private:
+  /**
+   * @brief Uses BFS to find all cells that are contiguous with a specific one.
+   * @param start The cell to start searching at.
+   * @param[in/out] nodes The cells to include in the search. Note that any
+   *    cells added to the component will be removed from this set.
+   * @param[out] component Populated with the cells in the final connected
+   *    component.
+   */
+  void FindConnected(const CellLocation &start, CellSet *nodes,
+                     CellSet *component) const;
+
   /// Current map that we are using.
   OccupancyGridConstPtr map_{};
+  /// Set of cells that we have marked as unreachable.
+  CellSet unreachable_{};
 };
+
+/**
+ * @brief Comparison operator for CellLocation.
+ * @param lhs The first location.
+ * @param rhs The second location.
+ * @return Whether they are equal.
+ */
+inline bool operator==(const MapManager::CellLocation &lhs,
+                       const MapManager::CellLocation &rhs) {
+  return lhs.x == rhs.x && lhs.y == rhs.y;
+}
 
 } // namespace exploration
 

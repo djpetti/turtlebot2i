@@ -51,6 +51,10 @@ private:
 
   /// The most recent robot pose.
   Pose current_pose_{};
+  /// The current goal that we're moving towards.
+  Pose current_goal_{};
+  /// Whether we are currently moving towards a goal.
+  bool has_a_goal_ = false;
 };
 
 } // namespace exploration

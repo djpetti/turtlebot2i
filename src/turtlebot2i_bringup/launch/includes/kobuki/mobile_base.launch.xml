@@ -10,7 +10,8 @@
     <param name="device_port" value="$(arg serialport)" />
     <param name="recovery_behaviors" value="[{name: conservative_reset, type: clear_costmap_recovery/ClearCostmapRecovery},
      {name: rotate_recovery, type: rotate_recovery/RotateRecovery},
-     {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery}]" />
+     {name: aggressive_reset, type: clear_costmap_recovery/ClearCostmapRecovery},
+     {name: rotate_recovery, type: rotate_recovery/RotateRecovery}]" />
 
     <remap from="mobile_base/odom" to="odom"/>
     <!-- Don't do this - force applications to use a velocity mux for redirection  

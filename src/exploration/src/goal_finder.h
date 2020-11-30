@@ -1,6 +1,8 @@
 #ifndef TURTLEBOT_GOAL_FINDER_H
 #define TURTLEBOT_GOAL_FINDER_H
 
+#include <vector>
+
 #include "geometry_msgs/Pose.h"
 #include "nav_msgs/OccupancyGrid.h"
 
@@ -29,7 +31,14 @@ public:
    * @return The new goal it has selected.
    */
   Pose FindNewGoal(const OccupancyGridConstPtr &new_map,
-                   const Pose& current_pose);
+                   const Pose &current_pose);
+
+  /**
+   * @brief Marks a particular goal as unreachable. This will prevent it
+   * from ever suggesting we move there again.
+   * @param goal The goal that is unreachable.
+   */
+  void MarkGoalUnreachable(const Pose &goal);
 
 private:
   /**
@@ -38,8 +47,23 @@ private:
    * @param current_pose Our current location.
    * @return The location of the closest unoccupied cell.
    */
-  MapManager::CellLocation
-  FindNearestUnexplored(const Pose& current_pose);
+  MapManager::CellLocation FindNearestUnexplored(const Pose &current_pose);
+
+  /**
+   * @brief Checks if a cell has any neighbors that are free.
+   * @param x The x-coordinate of the cell.
+   * @param y The y-coordinate of the cell.
+   * @return True iff any neighboring cells are free.
+   */
+  bool HasFreeNeighbors(uint32_t x, uint32_t y) const;
+
+  /**
+   * @brief Checks if a cell has any neighbors that are occupied.
+   * @param x The x-coordinate of the cell.
+   * @param y The y-coordinate of the cell.
+   * @return True iff any neighboring cells are occupied.
+   */
+  bool HasOccupiedNeighbors(uint32_t x, uint32_t y) const;
 
   /// The internal map to use for planning.
   MapManager *map_;

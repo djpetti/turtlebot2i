@@ -14,6 +14,11 @@ namespace {
  * we enforce a minimum distance away for our goal.
  */
 constexpr double kMinUnexploredDistance = 1.0;
+/**
+ * @brief We look for unexplored cells that are members of a blob with at
+ * least this size. Otherwise, they're likely to be just noise.
+ */
+constexpr uint8_t kMinUnexploredBlobSize = 25;
 
 /**
  * @brief Computes the Euclidean distance between two points.
@@ -30,12 +35,41 @@ double EuclideanDistance(const Point &point1, const Point &point2) {
 
 GoalFinder::GoalFinder(MapManager *manager) : map_(manager) {}
 
+bool GoalFinder::HasFreeNeighbors(uint32_t x, uint32_t y) const {
+  // Find all the neighbors first.
+  const auto &neighbors = map_->GetAdjacent(x, y);
+
+  // See if any are free.
+  return std::any_of(neighbors.begin(), neighbors.end(),
+                     [&](const MapManager::CellLocation &cell) {
+                       return map_->GetCellState(cell.x, cell.y) ==
+                              MapManager::CellState::FREE;
+                     });
+}
+
+bool GoalFinder::HasOccupiedNeighbors(uint32_t x, uint32_t y) const {
+  // Find all the neighbors first.
+  const auto &neighbors = map_->GetAdjacent(x, y);
+
+  // See if any are occupied.
+  return std::any_of(neighbors.begin(), neighbors.end(),
+                     [&](const MapManager::CellLocation &cell) {
+                       return map_->GetCellState(cell.x, cell.y) ==
+                              MapManager::CellState::OCCUPIED;
+                     });
+}
+
 MapManager::CellLocation
 GoalFinder::FindNearestUnexplored(const geometry_msgs::Pose &current_pose) {
   // Find all unexplored nodes.
   const auto unexplored =
       map_->FindAllWithState(MapManager::CellState::UNKNOWN);
   ROS_DEBUG_STREAM("Have " << unexplored.size() << " unexplored cells.");
+
+  // Organize unexplored nodes into contiguous blobs.
+  const auto unexplored_blobs =
+      map_->FindConnectedWithState(MapManager::CellState::UNKNOWN);
+  ROS_DEBUG_STREAM("Have " << unexplored_blobs.size() << " unexplored blobs.");
 
   // Otherwise, find the one that's closest to us.
   double min_distance = std::numeric_limits<double>::infinity();
@@ -49,6 +83,28 @@ GoalFinder::FindNearestUnexplored(const geometry_msgs::Pose &current_pose) {
 
     if (kDistance < kMinUnexploredDistance) {
       // We won't be able to survey this cell.
+      continue;
+    }
+
+    // Only consider cells with at least one free neighboring cell, and no
+    // occupied neighboring cells, because those are the most likely to be
+    // reachable.
+    if (!HasFreeNeighbors(cell.x, cell.y)) {
+      continue;
+    }
+    if (HasOccupiedNeighbors(cell.x, cell.y)) {
+      continue;
+    }
+
+    bool blob_too_small = false;
+    for (const auto& blob : unexplored_blobs) {
+      if (blob.find(cell) != blob.end() && blob.size() < kMinUnexploredBlobSize) {
+        // This unexplored cell is probably noise.
+        blob_too_small = true;
+        break;
+      }
+    }
+    if (blob_too_small) {
       continue;
     }
 
@@ -77,6 +133,13 @@ Pose GoalFinder::FindNewGoal(const nav_msgs::OccupancyGridConstPtr &new_map,
                                            << goal.position.y << "].");
 
   return goal;
+}
+
+void GoalFinder::MarkGoalUnreachable(const Pose &goal) {
+  // Find the nearest cell.
+  const auto &cell = map_->GetCellAtPoint(goal.position);
+  // Mark as unreachable.
+  map_->MarkCellUnreachable(cell.x, cell.y);
 }
 
 } // namespace exploration
