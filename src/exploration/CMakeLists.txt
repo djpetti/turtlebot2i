@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   actionlib
   move_base_msgs
+  tf2_geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -123,6 +124,7 @@ add_library(${PROJECT_NAME}
    src/map_manager.cpp
    src/goal_finder.cpp
    src/director.cpp
+   src/utils.cpp
 )
 target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 

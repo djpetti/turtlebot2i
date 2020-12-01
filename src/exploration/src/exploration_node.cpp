@@ -32,10 +32,19 @@ int main(int argc, char **argv) {
       node.subscribe("map", 1, &exploration::Director::UpdateMap, &director);
   // Subscribe to pose updates from the navigation system.
   ros::Subscriber pose_subscriber =
-      node.subscribe("rtabmap/localization_pose", 1,
+      node.subscribe("move_base/feedback", 1,
                      &exploration::Director::UpdatePose, &director);
 
-  ros::spin();
+  ros::Rate loop_rate(1);
+
+  // Main loop
+  while (ros::ok()) {
+    ros::spinOnce();
+
+    director.UpdateStatus();
+
+    loop_rate.sleep();
+  }
 
   return 0;
 }

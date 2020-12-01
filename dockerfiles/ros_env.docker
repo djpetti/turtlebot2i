@@ -4,6 +4,9 @@
 # Common dependency container.
 FROM ubuntu:16.04 AS common
 
+# Use same sources as the actual robot.
+ADD turtlebot_sources.list /etc/apt/sources.list
+
 # Add a turtlebot user.
 RUN useradd -m turtlebot
 

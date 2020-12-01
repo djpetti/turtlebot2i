@@ -88,6 +88,17 @@ public:
   std::vector<CellLocation> GetAdjacent(uint32_t x, uint32_t y) const;
 
   /**
+   * @brief Uses BFS to find all cells that are contiguous with a specific one.
+   * @param start The cell to start searching at.
+   * @param[in/out] nodes The cells to include in the search. Note that any
+   *    cells added to the component will be removed from this set.
+   * @param[out] component Populated with the cells in the final connected
+   *    component.
+   */
+  void FindConnected(const CellLocation &start, CellSet *nodes,
+                     CellSet *component) const;
+
+  /**
    * @brief Finds all contiguous nodes that have a particular state.
    * @param state The state that the nodes should have.
    * @return A vector of sets. Each set contains the locations of the cells in
@@ -120,17 +131,6 @@ public:
   void MarkCellUnreachable(uint32_t x, uint32_t y);
 
 private:
-  /**
-   * @brief Uses BFS to find all cells that are contiguous with a specific one.
-   * @param start The cell to start searching at.
-   * @param[in/out] nodes The cells to include in the search. Note that any
-   *    cells added to the component will be removed from this set.
-   * @param[out] component Populated with the cells in the final connected
-   *    component.
-   */
-  void FindConnected(const CellLocation &start, CellSet *nodes,
-                     CellSet *component) const;
-
   /// Current map that we are using.
   OccupancyGridConstPtr map_{};
   /// Set of cells that we have marked as unreachable.

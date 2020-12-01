@@ -15,9 +15,6 @@ apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BAD
 sh -c 'echo "deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main" > /etc/apt/sources.list.d/ros-latest.list'
 apt-get update
 
-# Set up SSH.
-apt-get install -y ssh
-
 # Install ROS.
 apt-get install -y --allow-unauthenticated git ros-kinetic-desktop
 rm -f /etc/ros/rosdep/sources.list.d/20-default.list
@@ -33,6 +30,7 @@ apt-get install -y binutils cpp cpp-5 dkms fakeroot gcc gcc-5 kmod libasan2 liba
 apt-get install -y libssl-dev libssl-doc libusb-1.0-0 libusb-1.0-0-dev libusb-1.0-doc linux-headers-4.4.0-159 linux-headers-4.4.0-159-generic linux-headers-generic zlib1g-dev
 
 # Modify librealsense deb (unpack, replace script, repack)
+apt-get install -y wget
 apt-get download ros-kinetic-librealsense
 dpkg-deb -R ros-kinetic-librealsense*.deb ros-rslib/
 
@@ -62,7 +60,7 @@ cd ~
 # Install turtlebot packages.
 apt-get install -y ros-kinetic-turtlebot* libudev-dev ros-kinetic-find-object-2d ros-kinetic-rtabmap-ros \
   ros-kinetic-moveit ros-kinetic-octomap-ros ros-kinetic-manipulation-msgs ros-kinetic-controller-manager \
-  python-wxgtk3.0
+  python-wxgtk3.0 ros-kinetic-tf2-geometry-msgs
 
 # Clear the apt cache at the end, so this doesn't get too big if we're running
 # in Docker.

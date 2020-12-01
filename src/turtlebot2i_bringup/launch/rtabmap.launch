@@ -54,8 +54,9 @@
 	  <param name="Mem/RehearsalSimilarity"      type="string" value="0.30"/>
 	  <param name="Reg/Force3DoF"                type="string" value="true"/>   
 	  <param name="Grid/FromDepth"               type="string" value="false"/>
+        <param name="Vis/MaxFeatures" type="string" value="1200"/> <!-- Maximum number of features extracted from the image. -->
 
-	  <!-- localization mode -->
+        <!-- localization mode -->
 	  <param     if="$(arg localization)" name="Mem/IncrementalMemory" type="string" value="false"/>
 	  <param unless="$(arg localization)" name="Mem/IncrementalMemory" type="string" value="true"/>
 	  <param name="Mem/InitWMWithAllNodes" type="string" value="$(arg localization)"/> 
@@ -67,6 +68,7 @@
       <param name="wait_for_transform_duration" type="double" value="$(arg wait_for_transform)"/>
       <param name="Reg/Force3DoF"               type="string" value="true"/>
       <param name="Vis/InlierDistance"          type="string" value="0.05"/>
+        <param name="GFTT/MinDistance" type="string" value="10"/> <!-- default 5 pixels -->
       
       <remap from="rgb/image"       to="/camera/rgb/image_rect_color"/>
       <remap from="depth/image"     to="/camera/depth/image_raw"/>

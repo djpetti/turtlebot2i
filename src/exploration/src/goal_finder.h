@@ -57,13 +57,7 @@ private:
    */
   bool HasFreeNeighbors(uint32_t x, uint32_t y) const;
 
-  /**
-   * @brief Checks if a cell has any neighbors that are occupied.
-   * @param x The x-coordinate of the cell.
-   * @param y The y-coordinate of the cell.
-   * @return True iff any neighboring cells are occupied.
-   */
-  bool HasOccupiedNeighbors(uint32_t x, uint32_t y) const;
+  std::vector<MapManager::CellSet> FindConnectedEdges();
 
   /// The internal map to use for planning.
   MapManager *map_;
