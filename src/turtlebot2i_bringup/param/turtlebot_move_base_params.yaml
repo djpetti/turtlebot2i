@@ -1,5 +1,8 @@
 #Interbotix DWA params have lowered max_vel_x and max_rot_vel
 
+# Use a voronoi planner instead of A*.
+base_global_planner: voronoi_planner/VoronoiPlanner
+
 DWAPlannerROS:
 
 # Robot Configuration Parameters - Kobuki

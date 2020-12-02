@@ -15,9 +15,9 @@
 
   <!-- Navigation stuff (move_base) -->
   <include file="$(find turtlebot_navigation)/launch/includes/move_base.launch.xml">
-    <arg name="custom_param_file" value="$(find turtlebot2i_bringup)/param/turtlebot2i_dwa_planner.yaml"/>
+    <arg name="custom_param_file" value="$(find turtlebot2i_bringup)/param/turtlebot_move_base_params.yaml"/>
   </include>
-  
+
   <!-- Mapping -->
   <group ns="rtabmap">
 
