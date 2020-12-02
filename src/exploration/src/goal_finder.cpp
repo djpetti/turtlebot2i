@@ -23,7 +23,7 @@ constexpr double kMinUnexploredDistance = 1.0;
  * least this size. Otherwise, they're likely to either be noise, or we won't
  * be able to fit through the opening.
  */
-constexpr uint8_t kMinUnexploredEdgeSize = 10;
+constexpr uint8_t kMinUnexploredEdgeSize = 15;
 
 /**
  * @brief Gets the cell that's closest to the center of a blob.
@@ -46,8 +46,8 @@ tf2::Quaternion CalculateGoalOrientation(const Point &start,
                                          const Point &goal) {
   // Find the angle between.
   const double kStraightAngle = std::atan2(goal.y - start.y, goal.x - start.x);
-  // Subtract from 180 degrees so we get the correct angle looking back.
-  const double kLookBackAngle = M_PI - kStraightAngle;
+  // Get the correct angle looking back.
+  const double kLookBackAngle = kStraightAngle + M_PI;
   ROS_DEBUG_STREAM("Goal yaw is " << kLookBackAngle << ".");
 
   // Convert to a quaternion.
@@ -72,7 +72,7 @@ bool GoalFinder::HasFreeNeighbors(uint32_t x, uint32_t y) const {
                      });
 }
 
-std::vector<MapManager::CellSet> GoalFinder::FindConnectedEdges() {
+void GoalFinder::UpdateUnexploredEdges() {
   // Find all unknown nodes.
   const auto &unknown_nodes =
       map_->FindAllWithState(MapManager::CellState::UNKNOWN);
@@ -86,35 +86,51 @@ std::vector<MapManager::CellSet> GoalFinder::FindConnectedEdges() {
   }
 
   // Find all connected components among these nodes.
-  std::vector<MapManager::CellSet> components;
+  unexplored_edges_.clear();
   while (!edge_nodes.empty()) {
     MapManager::CellSet component;
     map_->FindConnected(*edge_nodes.begin(), &edge_nodes, &component);
-    components.push_back(component);
+    unexplored_edges_.push_back(component);
+  }
+}
+
+MapManager::CellLocation
+GoalFinder::FindMostCenteredCellInBlob(const MapManager::CellSet &blob) {
+  // Find the blob center initially.
+  const auto &kCenterCell = BlobCenter(blob);
+  const auto &kCenterPos = map_->GetCellCenter(kCenterCell.x, kCenterCell.y);
+
+  // Find the cell within the blob that is closest to the center.
+  MapManager::CellLocation closest_cell{0, 0};
+  double min_distance = std::numeric_limits<double>::infinity();
+  for (const auto &cell : blob) {
+    const auto &kCellPos = map_->GetCellCenter(cell.x, cell.y);
+
+    const double kDistance = EuclideanDistance(kCellPos, kCenterPos);
+    if (kDistance < min_distance) {
+      closest_cell = cell;
+      min_distance = kDistance;
+    }
   }
 
-  return components;
+  return closest_cell;
 }
 
 MapManager::CellLocation
 GoalFinder::FindNearestUnexplored(const geometry_msgs::Pose &current_pose) {
-  // Find unexplored edges on the map.
-  const auto &unexplored_edges = FindConnectedEdges();
-  ROS_DEBUG_STREAM("Have " << unexplored_edges.size() << " unexplored edges.");
-
   // Find the edge that's closest to us.
   double min_distance = std::numeric_limits<double>::infinity();
   // If we've explored the whole map, we want to stay where we are.
   MapManager::CellLocation closest_cell =
       map_->GetCellAtPoint(current_pose.position);
-  for (const auto &edge : unexplored_edges) {
+  for (const auto &edge : unexplored_edges_) {
     if (edge.size() < kMinUnexploredEdgeSize) {
       // This edge is probably too narrow for us to fit through.
       continue;
     }
 
-    // Find the center cell in the blob.
-    const auto &kCenterCell = BlobCenter(edge);
+    // Find the cell in the blob that's nearest to the center.
+    const auto &kCenterCell = FindMostCenteredCellInBlob(edge);
 
     // Choose the blob that is the minimum distance away from our current
     // position.
@@ -142,6 +158,9 @@ Pose GoalFinder::FindNewGoal(const nav_msgs::OccupancyGridConstPtr &new_map,
                              const Pose &current_pose) {
   // Update the map.
   map_->UpdateMap(new_map);
+  // Update the set of connected edges.
+  UpdateUnexploredEdges();
+  ROS_DEBUG_STREAM("Have " << unexplored_edges_.size() << " unexplored edges.");
 
   // Locate the closest unexplored cell.
   const auto kGoalCell = FindNearestUnexplored(current_pose);
@@ -165,8 +184,27 @@ Pose GoalFinder::FindNewGoal(const nav_msgs::OccupancyGridConstPtr &new_map,
 void GoalFinder::MarkGoalUnreachable(const Pose &goal) {
   // Find the nearest cell.
   const auto &cell = map_->GetCellAtPoint(goal.position);
-  // Mark as unreachable.
-  map_->MarkCellUnreachable(cell.x, cell.y);
+
+  // Find the edge blob that this cell is part of.
+  const MapManager::CellSet *unreachable_edge = nullptr;
+  for (const auto &edge : unexplored_edges_) {
+    if (edge.find({cell.x, cell.y}) != edge.end()) {
+      unreachable_edge = &edge;
+      break;
+    }
+  }
+  if (unreachable_edge == nullptr) {
+    // We must have updated the map before running this, and the corresponding
+    // edge has disappeared.
+    ROS_WARN_STREAM("No corresponding edge for unreachable cell "
+                    << cell.x << ", " << cell.y << ".");
+    return;
+  }
+
+  // Mark the entire blob as unreachable.
+  for (const auto &unreachable_cell : *unreachable_edge) {
+    map_->MarkCellUnreachable(unreachable_cell.x, unreachable_cell.y);
+  }
 }
 
 } // namespace exploration

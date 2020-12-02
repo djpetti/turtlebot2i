@@ -51,10 +51,11 @@
 	  <param name="RGBD/AngularUpdate"           type="string" value="0.1"/>    <!-- Update map only if the robot is moving -->
 	  <param name="RGBD/LinearUpdate"            type="string" value="0.1"/>    <!-- Update map only if the robot is moving -->
 	  <param name="Rtabmap/TimeThr"              type="string" value="700"/>
+        <param name="Rtabmap/DetectionRate"              type="string" value="3"/>
 	  <param name="Mem/RehearsalSimilarity"      type="string" value="0.30"/>
 	  <param name="Reg/Force3DoF"                type="string" value="true"/>   
 	  <param name="Grid/FromDepth"               type="string" value="false"/>
-        <param name="Vis/MaxFeatures" type="string" value="1200"/> <!-- Maximum number of features extracted from the image. -->
+        <param name="Vis/MaxFeatures" type="string" value="600"/> <!-- Maximum number of features extracted from the image. -->
 
         <!-- localization mode -->
 	  <param     if="$(arg localization)" name="Mem/IncrementalMemory" type="string" value="false"/>

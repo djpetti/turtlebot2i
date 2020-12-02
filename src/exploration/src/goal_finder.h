@@ -57,10 +57,25 @@ private:
    */
   bool HasFreeNeighbors(uint32_t x, uint32_t y) const;
 
-  std::vector<MapManager::CellSet> FindConnectedEdges();
+  /**
+   * @brief Updates the stored set of connected edge nodes. An edge node is
+   * an unexplored node that borders on a free one.
+   */
+  void UpdateUnexploredEdges();
+
+  /**
+   * @brief Given a blob, it finds the cell within that blob that is nearest
+   *    to the center.
+   * @param blob The blob to find the center of.
+   * @return The cell within the blob that is nearest to the center.
+   */
+  MapManager::CellLocation
+  FindMostCenteredCellInBlob(const MapManager::CellSet &blob);
 
   /// The internal map to use for planning.
   MapManager *map_;
+  /// Set of connected edge nodes in the map.
+  std::vector<MapManager::CellSet> unexplored_edges_;
 };
 
 } // namespace exploration
