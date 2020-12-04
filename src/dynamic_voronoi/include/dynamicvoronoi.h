@@ -91,6 +91,8 @@ private:
   int sizeX;
   dataCell** data;
   bool** gridMap;
+  // Whether we own the grid map.
+  bool ownGridMap = true;
 
   // parameters
   int padding;
