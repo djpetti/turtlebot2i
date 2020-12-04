@@ -15,6 +15,9 @@ RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 RUN git clone https://github.com/IntelRealSense/librealsense.git \
     -b v2.40.0 /tmp/librealsense
 
+# Set apt to prefer ROS packages.
+ADD roles/turtlebot/files/preferences /etc/apt/preferences
+
 # Set up the ROS environment.
 ADD roles/turtlebot/files/setup_ros_env.sh .
 RUN ./setup_ros_env.sh && rm setup_ros_env.sh

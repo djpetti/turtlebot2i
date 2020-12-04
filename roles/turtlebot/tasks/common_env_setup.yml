@@ -16,6 +16,12 @@
     dest: /tmp/librealsense
     version: v2.40.0
 
+- name: Update apt preferences to prefer ROS.
+  copy:
+    src: preferences
+    dest: /etc/apt/preferences
+  become: yes
+
 - name: Run the ROS environment setup script.
   script: setup_ros_env.sh
   become: yes

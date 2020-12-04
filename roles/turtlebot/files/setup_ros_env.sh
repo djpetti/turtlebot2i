@@ -60,7 +60,7 @@ cd ~
 # Install turtlebot packages.
 apt-get install -y ros-kinetic-turtlebot* libudev-dev ros-kinetic-find-object-2d ros-kinetic-rtabmap-ros \
   ros-kinetic-moveit ros-kinetic-octomap-ros ros-kinetic-manipulation-msgs ros-kinetic-controller-manager \
-  python-wxgtk3.0 ros-kinetic-tf2-geometry-msgs
+  python-wxgtk3.0 ros-kinetic-tf2-geometry-msgs libhdf5-openmpi-dev
 
 # Clear the apt cache at the end, so this doesn't get too big if we're running
 # in Docker.

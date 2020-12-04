@@ -13,17 +13,17 @@ namespace exploration {
 namespace {
 
 /**
- * @brief If we are too close to an unexplored cell, we're probably
- * right on top of it and won't be able to survey it. Consequently,
- * we enforce a minimum distance away for our goal.
- */
-constexpr double kMinUnexploredDistance = 1.0;
-/**
  * @brief We look for unexplored cells that are members of an edge blob with at
  * least this size. Otherwise, they're likely to either be noise, or we won't
  * be able to fit through the opening.
  */
 constexpr uint8_t kMinUnexploredEdgeSize = 15;
+/**
+ * @brief The minimum distance we allow between the start and the goal before
+ * we try to nudge the goal a little to force some movement. Distance is in
+ * meters.
+ */
+constexpr double kMinGoalDistance = 0.1;
 
 /**
  * @brief Gets the cell that's closest to the center of a blob.
@@ -54,6 +54,31 @@ tf2::Quaternion CalculateGoalOrientation(const Point &start,
   tf2::Quaternion quaternion;
   quaternion.setRPY(0.0, 0.0, kLookBackAngle);
   return quaternion;
+}
+
+/**
+ * @brief Nudges the orientation by 180 degrees if the start is too close to
+ * the goal. This is an attempt to flesh out the map so it is less likely to
+ * get stuck.
+ * @param start_pos The starting position.
+ * @param goal_pos The goal position.
+ * @param goal_orientation The goal orientation.
+ * @return A possibly nudged version of the goal orientation.
+ */
+tf2::Quaternion MaybeNudgeOrientation(const Point &start_pos,
+                                      const Point &goal_pos,
+                                      const tf2::Quaternion &goal_orientation) {
+  auto nudged_orientation = goal_orientation;
+
+  if (EuclideanDistance(start_pos, goal_pos) < kMinGoalDistance) {
+    ROS_INFO_STREAM("Start and goal are too close; nudging orientation.");
+
+    tf2::Quaternion rotate_by;
+    rotate_by.setRPY(0.0, 0.0, M_PI);
+    nudged_orientation = rotate_by * nudged_orientation;
+  }
+
+  return nudged_orientation;
 }
 
 } // namespace
@@ -139,11 +164,6 @@ GoalFinder::FindNearestUnexplored(const geometry_msgs::Pose &current_pose) {
     const auto kDistance =
         EuclideanDistance(kCellInMapFrame, current_pose.position);
 
-    if (kDistance < kMinUnexploredDistance) {
-      // We won't be able to survey this cell.
-      continue;
-    }
-
     if (kDistance < min_distance) {
       // New closest cell found.
       min_distance = kDistance;
@@ -165,18 +185,20 @@ Pose GoalFinder::FindNewGoal(const nav_msgs::OccupancyGridConstPtr &new_map,
   // Locate the closest unexplored cell.
   const auto kGoalCell = FindNearestUnexplored(current_pose);
   const auto kGoalPos = map_->GetCellCenter(kGoalCell.x, kGoalCell.y);
-  const auto kGoalOrientation =
+  auto goal_orientation =
       CalculateGoalOrientation(current_pose.position, kGoalPos);
+  goal_orientation =
+      MaybeNudgeOrientation(current_pose.position, kGoalPos, goal_orientation);
 
   // Use that location as our goal.
   Pose goal;
   goal.position = kGoalPos;
-  goal.orientation = tf2::toMsg(kGoalOrientation);
+  goal.orientation = tf2::toMsg(goal_orientation);
   ROS_ERROR_STREAM("Setting new goal to ["
                    << goal.position.x << ", " << goal.position.y << "] and ["
-                   << kGoalOrientation.x() << ", " << kGoalOrientation.y()
-                   << ", " << kGoalOrientation.z() << ", "
-                   << kGoalOrientation.w() << "].");
+                   << goal_orientation.x() << ", " << goal_orientation.y()
+                   << ", " << goal_orientation.z() << ", "
+                   << goal_orientation.w() << "].");
 
   return goal;
 }

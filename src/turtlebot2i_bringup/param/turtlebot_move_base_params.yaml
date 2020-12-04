@@ -3,6 +3,12 @@
 # Use a voronoi planner instead of A*.
 base_global_planner: voronoi_planner/VoronoiPlanner
 
+global_costmap:
+  # Set based on recommendation from voronoi planner package docs.
+  width: 35.0
+  height: 35.0
+  publish_frequency: 5.0
+
 DWAPlannerROS:
 
 # Robot Configuration Parameters - Kobuki

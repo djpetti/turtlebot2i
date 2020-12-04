@@ -131,6 +131,8 @@ class VoronoiPlanner : public nav_core::BaseGlobalPlanner {
         void outlineMap(unsigned char* costarr, int nx, int ny, unsigned char value);
         unsigned char* cost_array_;
         unsigned int start_x_, start_y_, end_x_, end_y_;
+        // Current size of the costmap.
+        int costmap_size_x_ = 0, costmap_size_y_ = 0;
 
 
         dynamic_reconfigure::Server<voronoi_planner::VoronoiPlannerConfig> *dsrv_;

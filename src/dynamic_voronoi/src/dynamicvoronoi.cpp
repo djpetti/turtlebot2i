@@ -21,23 +21,25 @@ DynamicVoronoi::~DynamicVoronoi() {
 }
 
 void DynamicVoronoi::initializeEmpty(int _sizeX, int _sizeY, bool initGridMap) {
-  sizeX = _sizeX;
-  sizeY = _sizeY;
   if (data) {
-    for (int x=0; x<sizeX; x++) delete[] data[x];
+    for (int x = 0; x < sizeX; x++)
+      delete[] data[x];
     delete[] data;
   }
-  data = new dataCell*[sizeX];
-  for (int x=0; x<sizeX; x++) data[x] = new dataCell[sizeY];
+  data = new dataCell*[_sizeX];
+  for (int x=0; x<_sizeX; x++) data[x] = new dataCell[_sizeY];
 
   if (initGridMap) {
     if (gridMap) {
       for (int x=0; x<sizeX; x++) delete[] gridMap[x];
       delete[] gridMap;
     }
-    gridMap = new bool*[sizeX];
-    for (int x=0; x<sizeX; x++) gridMap[x] = new bool[sizeY];
+    gridMap = new bool*[_sizeX];
+    for (int x=0; x<_sizeX; x++) gridMap[x] = new bool[_sizeY];
   }
+
+  sizeX = _sizeX;
+  sizeY = _sizeY;
   
   dataCell c;
   c.dist = INFINITY;
