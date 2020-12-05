@@ -4,12 +4,12 @@
  * (Modified by Daniel Petti)
  *
  *********************************************************************/
+#include <algorithm>
 #include <costmap_2d/cost_values.h>
 #include <costmap_2d/costmap_2d.h>
 #include <pluginlib/class_list_macros.h>
 #include <tf/transform_listener.h>
 #include <voronoi_planner/planner_core.h>
-#include <memory>
 
 // register this planner as a BaseGlobalPlanner plugin
 PLUGINLIB_EXPORT_CLASS(voronoi_planner::VoronoiPlanner,
@@ -305,37 +305,36 @@ bool VoronoiPlanner::makePlan(const geometry_msgs::PoseStamped &start,
   tf::poseStampedMsgToTF(start, start_pose);
   clearRobotCell(start_pose, start_x_i, start_y_i);
 
-  int nx = costmap_->getSizeInCellsX(), ny = costmap_->getSizeInCellsY();
+  const int costmap_size_x = costmap_->getSizeInCellsX();
+  const int costmap_size_y = costmap_->getSizeInCellsY();
 
-  outlineMap(costmap_->getCharMap(), nx, ny, costmap_2d::LETHAL_OBSTACLE);
-
-  bool **map = NULL;
-  const int old_size_x = costmap_size_x_;
-  const int old_size_y = costmap_size_y_;
-
-  costmap_size_x_ = costmap_->getSizeInCellsX();
-  costmap_size_y_ = costmap_->getSizeInCellsY();
-
-  if (old_size_x != costmap_size_x_ || old_size_y != costmap_size_y_) {
-    // We avoid updating the plan here, because sometimes the costmap is
-    // temporarily empty after resizing.
-    ROS_INFO_STREAM("Costmap changed size, waiting to update plan.");
+  auto *costmap = costmap_->getCharMap();
+  if (std::all_of(costmap, costmap + (costmap_size_x * costmap_size_y),
+                  [](unsigned char cost) { return cost == 0; })) {
+    // This is a kludge to deal with the fact that the costmap is sometimes
+    // empty, and that causes the planner to produce bad plans.
+    ROS_WARN_STREAM("Costmap is empty, not updating plan.");
     return false;
   }
 
-  map = new bool *[costmap_size_x_];
+  outlineMap(costmap_->getCharMap(), costmap_size_x, costmap_size_y,
+             costmap_2d::LETHAL_OBSTACLE);
+
+  bool **map = NULL;
+
+  map = new bool *[costmap_size_x];
 
   //    ROS_INFO("Map size is %d %d", sizeX, sizeY);
 
   ros::Time t = ros::Time::now();
   ros::Time t_b = ros::Time::now();
 
-  for (int x = 0; x < costmap_size_x_; x++) {
-    (map)[x] = new bool[costmap_size_y_];
+  for (int x = 0; x < costmap_size_x; x++) {
+    (map)[x] = new bool[costmap_size_y];
   }
 
-  for (int y = costmap_size_y_ - 1; y >= 0; y--) {
-    for (int x = 0; x < costmap_size_x_; x++) {
+  for (int y = costmap_size_y - 1; y >= 0; y--) {
+    for (int x = 0; x < costmap_size_x; x++) {
       unsigned char c = costmap_->getCost(x, y);
 
       // We allow it to skirt obstacles if it needs to.
@@ -354,7 +353,7 @@ bool VoronoiPlanner::makePlan(const geometry_msgs::PoseStamped &start,
   // initialize voronoi object it with the map
 
   ROS_INFO("voronoi.initializeMap");
-  voronoi_.initializeMap(costmap_size_x_, costmap_size_y_, map);
+  voronoi_.initializeMap(costmap_size_x, costmap_size_y, map);
   ROS_INFO("Time (for initializeMap): %f sec", (ros::Time::now() - t).toSec());
   t = ros::Time::now();
 
@@ -501,7 +500,7 @@ bool VoronoiPlanner::makePlan(const geometry_msgs::PoseStamped &start,
 
   //    delete potential_array_;
 
-  for (int x = 0; x < costmap_size_x_; x++) {
+  for (int x = 0; x < costmap_size_x; x++) {
     delete[] map[x];
   }
   delete[] map;
