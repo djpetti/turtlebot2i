@@ -131,6 +131,14 @@ public:
   void MarkCellUnreachable(uint32_t x, uint32_t y);
 
 private:
+  /**
+   * @brief Updates the coordinates of unreachable cells in the grid when the
+   *    map origin changes.
+   * @param new_map The latest map. It should not have been copied into the
+   *    `map_` property yet.
+   */
+  void UpdateUnreachableLocations(const OccupancyGridConstPtr &new_map);
+
   /// Current map that we are using.
   OccupancyGridConstPtr map_{};
   /// Set of cells that we have marked as unreachable.
