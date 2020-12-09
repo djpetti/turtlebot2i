@@ -29,11 +29,11 @@ int main(int argc, char **argv) {
 
   // Subscribe to map updates from the navigation system.
   ros::Subscriber map_subscriber =
-      node.subscribe("map", 1, &exploration::Director::UpdateMap, &director);
+      node.subscribe("move_base/global_costmap/costmap", 1,
+                     &exploration::Director::UpdateMap, &director);
   // Subscribe to pose updates from the navigation system.
-  ros::Subscriber pose_subscriber =
-      node.subscribe("move_base/feedback", 1,
-                     &exploration::Director::UpdatePose, &director);
+  ros::Subscriber pose_subscriber = node.subscribe(
+      "move_base/feedback", 1, &exploration::Director::UpdatePose, &director);
 
   ros::Rate loop_rate(1);
 

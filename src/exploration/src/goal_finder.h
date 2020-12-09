@@ -11,6 +11,7 @@
 namespace exploration {
 
 using geometry_msgs::Pose;
+using nav_msgs::OccupancyGrid;
 using nav_msgs::OccupancyGridConstPtr;
 
 /**
@@ -42,12 +43,12 @@ public:
 
 private:
   /**
-   * @brief Finds the unoccupied cell that is the closest to our current
-   * location.
+   * @brief Finds the unexplored edge for which the cost of the path is
+   *    lowest.
    * @param current_pose Our current location.
    * @return The location of the closest unoccupied cell.
    */
-  MapManager::CellLocation FindNearestUnexplored(const Pose &current_pose);
+  MapManager::CellLocation FindLowestCostUnexplored(const Pose &current_pose);
 
   /**
    * @brief Checks if a cell has any neighbors that are free.
@@ -74,6 +75,8 @@ private:
 
   /// The internal map to use for planning.
   MapManager *map_;
+  /// The internal costmap to use for planning.
+  OccupancyGrid costmap_{};
   /// Set of connected edge nodes in the map.
   std::vector<MapManager::CellSet> unexplored_edges_;
 };

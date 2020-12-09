@@ -142,12 +142,14 @@ GoalFinder::FindMostCenteredCellInBlob(const MapManager::CellSet &blob) {
 }
 
 MapManager::CellLocation
-GoalFinder::FindNearestUnexplored(const geometry_msgs::Pose &current_pose) {
-  // Find the edge that's closest to us.
-  double min_distance = std::numeric_limits<double>::infinity();
+GoalFinder::FindLowestCostUnexplored(const geometry_msgs::Pose &current_pose) {
+  // Find the edge that has the lowest cost.
+  float min_cost = std::numeric_limits<float>::infinity();
+
+  const auto kCurrentCell = map_->GetCellAtPoint(current_pose.position);
   // If we've explored the whole map, we want to stay where we are.
-  MapManager::CellLocation closest_cell =
-      map_->GetCellAtPoint(current_pose.position);
+  MapManager::CellLocation best_destination_cell = kCurrentCell;
+
   for (const auto &edge : unexplored_edges_) {
     if (edge.size() < kMinUnexploredEdgeSize) {
       // This edge is probably too narrow for us to fit through.
@@ -157,21 +159,23 @@ GoalFinder::FindNearestUnexplored(const geometry_msgs::Pose &current_pose) {
     // Find the cell in the blob that's nearest to the center.
     const auto &kCenterCell = FindMostCenteredCellInBlob(edge);
 
-    // Choose the blob that is the minimum distance away from our current
-    // position.
-    const auto &kCellInMapFrame =
-        map_->GetCellCenter(kCenterCell.x, kCenterCell.y);
-    const auto kDistance =
-        EuclideanDistance(kCellInMapFrame, current_pose.position);
+    // Find the cost of getting to this cell from where we are now.
+    const auto kCost = map_->CalculateNavigationCost(kCurrentCell, kCenterCell);
+    ROS_DEBUG_STREAM("Cost of " << kCost << " to get from here to "
+                                << kCenterCell.x << ", " << kCenterCell.y
+                                << ".");
 
-    if (kDistance < min_distance) {
+    if (kCost < min_cost) {
       // New closest cell found.
-      min_distance = kDistance;
-      closest_cell = kCenterCell;
+      min_cost = kCost;
+      best_destination_cell = kCenterCell;
     }
   }
 
-  return closest_cell;
+  ROS_INFO_STREAM("Best destination cell is "
+                  << best_destination_cell.x << ", " << best_destination_cell.y
+                  << " with a cost of " << min_cost << ".");
+  return best_destination_cell;
 }
 
 Pose GoalFinder::FindNewGoal(const nav_msgs::OccupancyGridConstPtr &new_map,
@@ -183,7 +187,7 @@ Pose GoalFinder::FindNewGoal(const nav_msgs::OccupancyGridConstPtr &new_map,
   ROS_DEBUG_STREAM("Have " << unexplored_edges_.size() << " unexplored edges.");
 
   // Locate the closest unexplored cell.
-  const auto kGoalCell = FindNearestUnexplored(current_pose);
+  const auto kGoalCell = FindLowestCostUnexplored(current_pose);
   const auto kGoalPos = map_->GetCellCenter(kGoalCell.x, kGoalCell.y);
   auto goal_orientation =
       CalculateGoalOrientation(current_pose.position, kGoalPos);

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "geometry_msgs/Point.h"
+#include "navfn/navfn.h"
 #include "nav_msgs/OccupancyGrid.h"
 
 namespace exploration {
@@ -130,6 +131,16 @@ public:
    */
   void MarkCellUnreachable(uint32_t x, uint32_t y);
 
+  /**
+   * @brief Calculates the total cost of the minimum-cost path between a
+   *   starting cell and a goal cell.
+   * @param start The starting cell for the path.
+   * @param goal The goal cell for the path.
+   * @return The cost of the path it found. This will be infinity if no path
+   *    could be found.
+   */
+  float CalculateNavigationCost(const CellLocation& start, const CellLocation& goal);
+
 private:
   /**
    * @brief Updates the coordinates of unreachable cells in the grid when the
@@ -139,10 +150,21 @@ private:
    */
   void UpdateUnreachableLocations(const OccupancyGridConstPtr &new_map);
 
+  /**
+   * @brief Converts the internal map to ROS costmap format, i.e. with values
+   *   between 0 and 255.
+   * @return The map as a ROS costmap.
+   */
+  const std::vector<uint8_t>& AsCostmap();
+
   /// Current map that we are using.
   OccupancyGridConstPtr map_{};
   /// Set of cells that we have marked as unreachable.
   CellSet unreachable_{};
+  /// Internal buffer to use for costmaps.
+  std::vector<uint8_t> costmap_;
+  /// NavFn to use for path calculations.
+  navfn::NavFn nav_{1, 1};
 };
 
 /**

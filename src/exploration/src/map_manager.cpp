@@ -1,12 +1,23 @@
 #include "map_manager.h"
 
+#include <algorithm>
 #include <cmath>
+#include <numeric>
 #include <queue>
 
+#include "costmap_2d/cost_values.h"
 #include "ros/ros.h"
 
 namespace exploration {
 namespace {
+
+/**
+ * @brief Costmap threshold value at which to consider a cell occupied, between
+ * 0 and 100.
+ */
+constexpr uint8_t kOccupancyThreshold = 100;
+/// Maximum number of cycles to calculate paths for.
+constexpr uint32_t kMaxPathPlanCycles = 1000000;
 
 /**
  * @brief Determines how much of a shift there has been in the origin between
@@ -67,11 +78,9 @@ MapManager::CellState MapManager::GetCellState(uint32_t x, uint32_t y) const {
     return CellState::UNREACHABLE;
   }
 
-  // If there is a more than 50% probability that the space is occupied, we
-  // mark it as such.
-  return raw_map_value > 50    ? CellState::OCCUPIED
-         : raw_map_value == -1 ? CellState::UNKNOWN
-                               : CellState::FREE;
+  return raw_map_value >= kOccupancyThreshold ? CellState::OCCUPIED
+         : raw_map_value == -1                ? CellState::UNKNOWN
+                                              : CellState::FREE;
 }
 
 uint32_t MapManager::MapWidth() const {
@@ -84,8 +93,8 @@ uint32_t MapManager::MapHeight() const {
   return map_->info.height;
 }
 
-std::vector<MapManager::CellLocation> MapManager::FindAllWithState(
-    MapManager::CellState state) const {
+std::vector<MapManager::CellLocation>
+MapManager::FindAllWithState(MapManager::CellState state) const {
   std::vector<CellLocation> locations;
 
   // Iterate through all the cells.
@@ -136,8 +145,8 @@ Point MapManager::GetCellCenter(uint32_t x, uint32_t y) const {
 
   return center;
 }
-std::vector<MapManager::CellLocation> MapManager::GetAdjacent(
-    uint32_t x, uint32_t y) const {
+std::vector<MapManager::CellLocation>
+MapManager::GetAdjacent(uint32_t x, uint32_t y) const {
   ROS_FATAL_COND(map_ == nullptr, "Map is not initialized.");
   ROS_FATAL_COND(y >= MapHeight(), "Specified y-coordinate is out-of-bounds.");
   ROS_FATAL_COND(x >= MapWidth(), "Specified x-coordinate is out-of-bounds.");
@@ -197,8 +206,8 @@ void MapManager::FindConnected(const MapManager::CellLocation &start,
   }
 }
 
-std::vector<MapManager::CellSet> MapManager::FindConnectedWithState(
-    MapManager::CellState state) const {
+std::vector<MapManager::CellSet>
+MapManager::FindConnectedWithState(MapManager::CellState state) const {
   // First, get only the nodes that have this state.
   const auto &nodes_vector = FindAllWithState(state);
   CellSet nodes(nodes_vector.begin(), nodes_vector.end());
@@ -238,4 +247,82 @@ void MapManager::UpdateUnreachableLocations(
   }
 }
 
-}  // namespace exploration
+const std::vector<uint8_t> &MapManager::AsCostmap() {
+  costmap_.clear();
+  const uint32_t kDataLength = MapHeight() * MapWidth();
+  costmap_.resize(kDataLength);
+
+  for (uint32_t i = 0; i < kDataLength; ++i) {
+    // Note: The "magic" values here are taken from the costmap publisher code.
+    switch (map_->data[i]) {
+    case -1: {
+      // This indicates an unknown location.
+      costmap_[i] = costmap_2d::NO_INFORMATION;
+      break;
+    }
+    case 0: {
+      // This indicates a free space.
+      costmap_[i] = costmap_2d::FREE_SPACE;
+      break;
+    }
+    case 99: {
+      // This indicates an inscribed obstacle.
+      costmap_[i] = costmap_2d::INSCRIBED_INFLATED_OBSTACLE;
+      break;
+    }
+    case 100: {
+      // This indicates a lethal obstacle.
+      costmap_[i] = costmap_2d::LETHAL_OBSTACLE;
+    }
+    default: {
+      // Otherwise, just rescale the values directly.
+      const double kRescaled = static_cast<double>(map_->data[i]) / 100.0 *
+                               costmap_2d::LETHAL_OBSTACLE;
+      costmap_[i] = static_cast<uint8_t>(std::round(kRescaled));
+    }
+    }
+  }
+
+  return costmap_;
+}
+
+float MapManager::CalculateNavigationCost(
+    const MapManager::CellLocation &start,
+    const MapManager::CellLocation &goal) {
+  // Initialize to the correct grid size if necessary.
+  if (MapWidth() != static_cast<uint32_t>(nav_.nx) ||
+      MapHeight() != static_cast<uint32_t>(nav_.ny)) {
+    ROS_DEBUG_STREAM("Reinitializing NavFn with costmap of size "
+                     << MapWidth() << "x" << MapHeight());
+    nav_.setNavArr(MapWidth(), MapHeight());
+  }
+
+  // Set the parameters.
+  const auto &costmap = AsCostmap();
+  nav_.setCostmap(costmap.data());
+  int start_array[] = {static_cast<int>(start.x), static_cast<int>(start.y)};
+  int goal_array[] = {static_cast<int>(goal.x), static_cast<int>(goal.y)};
+  nav_.setStart(start_array);
+  nav_.setGoal(goal_array);
+
+  nav_.setupNavFn(true);
+
+  // Calculate the potential and path.
+  const uint32_t kMaxIterations =
+      std::max(MapWidth() * MapHeight() / 20, MapWidth() + MapHeight());
+  nav_.propNavFnAstar(kMaxIterations);
+
+  // Find a path.
+  if (nav_.calcPath(kMaxPathPlanCycles) <= 0) {
+    // We did not find a full path to the start.
+    ROS_WARN_STREAM("Did not find a full path from "
+                    << start.x << ", " << start.y << " to " << goal.x << ", "
+                    << goal.y << ".");
+    return std::numeric_limits<float>::infinity();
+  }
+
+  // Get the cost of the path.
+  return nav_.getLastPathCost();
+}
+
+} // namespace exploration
