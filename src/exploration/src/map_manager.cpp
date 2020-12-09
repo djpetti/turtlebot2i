@@ -84,8 +84,8 @@ uint32_t MapManager::MapHeight() const {
   return map_->info.height;
 }
 
-std::vector<MapManager::CellLocation>
-MapManager::FindAllWithState(MapManager::CellState state) const {
+std::vector<MapManager::CellLocation> MapManager::FindAllWithState(
+    MapManager::CellState state) const {
   std::vector<CellLocation> locations;
 
   // Iterate through all the cells.
@@ -136,8 +136,8 @@ Point MapManager::GetCellCenter(uint32_t x, uint32_t y) const {
 
   return center;
 }
-std::vector<MapManager::CellLocation>
-MapManager::GetAdjacent(uint32_t x, uint32_t y) const {
+std::vector<MapManager::CellLocation> MapManager::GetAdjacent(
+    uint32_t x, uint32_t y) const {
   ROS_FATAL_COND(map_ == nullptr, "Map is not initialized.");
   ROS_FATAL_COND(y >= MapHeight(), "Specified y-coordinate is out-of-bounds.");
   ROS_FATAL_COND(x >= MapWidth(), "Specified x-coordinate is out-of-bounds.");
@@ -197,8 +197,8 @@ void MapManager::FindConnected(const MapManager::CellLocation &start,
   }
 }
 
-std::vector<MapManager::CellSet>
-MapManager::FindConnectedWithState(MapManager::CellState state) const {
+std::vector<MapManager::CellSet> MapManager::FindConnectedWithState(
+    MapManager::CellState state) const {
   // First, get only the nodes that have this state.
   const auto &nodes_vector = FindAllWithState(state);
   CellSet nodes(nodes_vector.begin(), nodes_vector.end());
@@ -238,4 +238,4 @@ void MapManager::UpdateUnreachableLocations(
   }
 }
 
-} // namespace exploration
+}  // namespace exploration
