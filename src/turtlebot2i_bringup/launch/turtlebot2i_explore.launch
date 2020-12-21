@@ -26,4 +26,6 @@
 
   <include if="$(arg rviz)" file="$(find turtlebot2i_bringup)/launch/rviz.launch"/>
 
+  <node pkg="exploration" type="exploration_node" name="exploration" />
+
 </launch>
